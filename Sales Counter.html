@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales Counter</title>
+<style>
+:root{--bg:#faf8f5;--card:#fff;--text:#1f1f1f;--muted:#777;--accent:#d9480f;--minus:#e9e5df;--border:#e4dfd8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161412;--card:#221f1c;--text:#f2efe9;--muted:#9a948b;--accent:#ff8a4c;--minus:#38332e;--border:#38332e}}
+:root[data-theme="dark"]{--bg:#161412;--card:#221f1c;--text:#f2efe9;--muted:#9a948b;--accent:#ff8a4c;--minus:#38332e;--border:#38332e}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:12px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+h1{font-size:18px;margin:0}
+#date{color:var(--muted);font-size:13px}
+#total{background:var(--accent);color:#fff;border-radius:12px;padding:12px 16px;font-size:18px;font-weight:600;display:flex;justify-content:space-between;margin-bottom:12px}
+.row{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 10px;margin-bottom:8px}
+.name{flex:1;font-size:16px;font-weight:500;padding-right:8px}
+.ctl{display:flex;align-items:center;gap:10px}
+button{border:0;border-radius:10px;font-size:26px;font-weight:600;width:52px;height:52px;cursor:pointer;color:var(--text);-webkit-tap-highlight-color:transparent}
+.minus{background:var(--minus)}
+.plus{background:var(--accent);color:#fff}
+button:active{transform:scale(.93)}
+.qty{min-width:36px;text-align:center;font-size:24px;font-weight:700}
+.foot{display:flex;gap:8px;margin-top:12px}
+.foot button{flex:1;width:auto;height:44px;font-size:15px;background:var(--minus)}
+.ni{width:100%;font:inherit;padding:6px;border-radius:8px;border:1px solid var(--accent);background:var(--bg);color:var(--text);box-sizing:border-box}
+.add{display:flex;gap:8px;margin-top:4px}
+.add input{flex:1;min-width:0;font:inherit;font-size:16px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text)}
+.add button{width:auto;height:44px;font-size:15px;padding:0 16px;background:var(--accent);color:#fff}
+.plate{text-align:center;font-size:20px;font-weight:700;letter-spacing:.5px;padding:10px 12px;margin-bottom:10px;border:2px solid var(--accent);border-radius:12px;background:var(--card);color:var(--accent)}
+.plate input{width:100%;font:inherit;text-align:center;padding:4px;border-radius:8px;border:1px solid var(--accent);background:var(--bg);color:var(--text);box-sizing:border-box}
+small{display:block;color:var(--muted);text-align:center;margin-top:10px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="plate" id="plate"></div>
+<header><h1>Sales Counter</h1><span id="date"></span></header>
+<div id="total"><span>Total sold</span><span id="sum">0</span></div>
+<div id="list"></div>
+<div class="add"><input id="newname" placeholder="New item name" maxlength="40"><button id="addbtn">Add item</button></div>
+<div class="foot"><button id="copy">Copy summary</button><button id="reset">Reset day</button></div>
+<small>Tap a product name to rename it. Tap the restaurant name at the top to change it. Data saves automatically on this device.</small>
+<footer style="text-align:center;color:var(--muted);font-size:12px;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)">Built by Mison &middot; &copy; 2026 &middot; All rights reserved</footer>
+<script>
+var DEFAULT=["Chicken Lollipop","Chicken Curry","Chicken Pakoda","Egg Roll","Chow Mein","Chicken Roll","Chicken Ball","Sandwich","Sweet Beverage","Other"];
+var KEY="salesCounter.v1";var RESTAURANT="Restaurant Name";var editing=-1;var editingPlate=false;
+var today=new Date().toISOString().slice(0,10);
+var state={names:DEFAULT.slice(),days:{}};
+try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&s.names&&s.days)state=s}catch(e){}
+if(!state.days[today])state.days[today]=DEFAULT.map(function(){return 0});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function counts(){var c=state.days[today];while(c.length<state.names.length)c.push(0);return c}
+function render(){
+  var c=counts(),html="",sum=0;
+  state.names.forEach(function(n,i){
+    sum+=c[i];
+    var nm=(editing===i)?'<input class="ni" value="'+n.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")+'">':n.replace(/</g,"&lt;");html+='<div class="row"><div class="name" data-n="'+i+'">'+nm+'</div><div class="ctl"><button class="minus" data-m="'+i+'">−</button><div class="qty">'+c[i]+'</div><button class="plus" data-p="'+i+'">+</button></div></div>';
+  });
+  document.getElementById("list").innerHTML=html;
+  document.getElementById("sum").textContent=sum;
+  var ni=document.querySelector(".ni");if(ni){ni.focus();ni.select()}
+  document.getElementById("date").textContent=today;
+  var pl=document.getElementById("plate");
+  if(editingPlate){pl.innerHTML='<input class="pn" maxlength="40" value="'+(state.restaurant||RESTAURANT).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")+'">';var pi=pl.querySelector("input");pi.focus();pi.select()}else{pl.textContent=state.restaurant||RESTAURANT}
+}
+document.getElementById("list").addEventListener("click",function(e){
+  var t=e.target,c=counts();
+  if(t.dataset.p!==undefined){c[+t.dataset.p]++}
+  else if(t.dataset.m!==undefined){var i=+t.dataset.m;if(c[i]>0)c[i]--}
+  else if(t.dataset.n!==undefined){editing=+t.dataset.n;render();return}
+  else return;
+  save();render();
+});
+function addItem(){var inp=document.getElementById("newname");var v=inp.value.trim();if(!v)return;state.names.push(v);inp.value="";save();render()}
+document.getElementById("addbtn").onclick=addItem;
+document.getElementById("newname").addEventListener("keydown",function(e){if(e.key==="Enter")addItem()});
+function finishPlate(inp){if(!editingPlate)return;editingPlate=false;var v=inp.value.trim();if(v)state.restaurant=v;save();render()}
+document.getElementById("plate").addEventListener("click",function(e){if(e.target.tagName=="INPUT")return;editingPlate=true;render()});
+document.getElementById("plate").addEventListener("keydown",function(e){if(e.target.tagName=="INPUT"&&e.key==="Enter")finishPlate(e.target)});
+document.getElementById("plate").addEventListener("focusout",function(e){if(e.target.tagName=="INPUT")finishPlate(e.target)});
+function finishEdit(inp,commit){if(editing<0)return;var i=editing;editing=-1;if(commit&&inp.value.trim())state.names[i]=inp.value.trim();save();render()}
+document.getElementById("list").addEventListener("keydown",function(e){if(e.target.classList.contains("ni")&&e.key==="Enter")finishEdit(e.target,true)});
+document.getElementById("list").addEventListener("focusout",function(e){if(e.target.classList.contains("ni"))finishEdit(e.target,true)});
+document.getElementById("reset").onclick=function(){var b=this;if(b.dataset.arm){delete b.dataset.arm;b.textContent="Reset day";state.days[today]=DEFAULT.map(function(){return 0});save();render()}else{b.dataset.arm="1";b.textContent="Tap again to confirm";setTimeout(function(){delete b.dataset.arm;b.textContent="Reset day"},3000)}};
+document.getElementById("copy").onclick=function(){
+  var c=counts(),t="Sales "+today+"\n",sum=0;
+  state.names.forEach(function(n,i){t+=n+": "+c[i]+"\n";sum+=c[i]});
+  t+="Total: "+sum;
+  var b=this;function ok(){b.textContent="Copied ✓";setTimeout(function(){b.textContent="Copy summary"},1500)}
+  function fb(){var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(x){b.textContent="Copy failed"}document.body.removeChild(a)}
+  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}
+};
+render();
+</script>
+</body>
+</html>
