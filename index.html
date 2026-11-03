@@ -35,6 +35,25 @@ small{display:block;color:var(--muted);text-align:center;margin-top:10px;font-si
 </style>
 </head>
 <body>
+  <script>
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+document.addEventListener('keydown', e => {
+  if (
+    e.ctrlKey && ['u','s','c','x','a'].includes(e.key.toLowerCase()) ||
+    e.key === 'F12'
+  ) {
+    e.preventDefault();
+  }
+});
+</script>
+
+<style>
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+</style>
 <div class="plate" id="plate"></div>
 <header><h1>Sales Counter</h1><span id="date"></span></header>
 <div id="total"><span>Total sold</span><span id="sum">0</span></div>
